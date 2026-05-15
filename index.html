@@ -14,33 +14,262 @@
             max-width: 1200px;
             margin: 0 auto;
         }
-        h1 {
+            <title>Painel Banco Central</title>
+            <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
             color: #333;
+                :root {
+                    --bg: #f4efe6;
+                    --panel: rgba(255, 250, 242, 0.88);
+                    --ink: #102542;
+                    --muted: #51606f;
+                    --accent: #f05d23;
+                    --accent-2: #0d5c63;
+                    --line: rgba(16, 37, 66, 0.15);
+                }
             text-align: center;
         }
-        .update-info {
-            text-align: center;
+                    min-height: 100vh;
+                    padding: 24px;
+                    font-family: "Georgia", "Times New Roman", serif;
+                    color: var(--ink);
+                    background:
+                        radial-gradient(circle at top left, rgba(240, 93, 35, 0.18), transparent 30%),
+                        radial-gradient(circle at bottom right, rgba(13, 92, 99, 0.18), transparent 28%),
+                        linear-gradient(135deg, #f4efe6 0%, #ebe3d4 100%);
             color: #666;
             margin-bottom: 20px;
-        }
+                    max-width: 1240px;
         iframe {
+                    display: grid;
+                    gap: 20px;
             width: 100%;
-            height: 950px;
-            border: none;
-        }
+                .hero, .panel {
+                    background: var(--panel);
+                    backdrop-filter: blur(12px);
+                    border: 1px solid var(--line);
+                    border-radius: 24px;
+                    box-shadow: 0 24px 80px rgba(16, 37, 66, 0.08);
+                }
+                .hero {
+                    padding: 28px;
+                }
+                h1 {
+                    margin: 0 0 8px;
+                    font-size: clamp(2.2rem, 4vw, 4rem);
+                    line-height: 0.96;
     </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Evolução Histórica da Taxa SELIC</h1>
+                .hero p {
+                    margin: 0;
+                    max-width: 760px;
+                    color: var(--muted);
+                    font-size: 1.05rem;
         <div class="update-info">
-            Última atualização: <span id="last-update"></span>
-        </div>
-        <iframe src="grafico_selic_periodos.html"></iframe>
-    </div>
+                .controls {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    gap: 14px;
+                    margin-top: 22px;
+                }
+                .field {
+                    display: grid;
+                    gap: 6px;
+                }
+                .field label {
+                    font-size: 0.8rem;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    color: var(--muted);
+                }
+                .field input,
+                .field select,
+                button {
+                    border: 1px solid var(--line);
+                    border-radius: 14px;
+                    padding: 12px 14px;
+                    font: inherit;
+                    background: rgba(255, 255, 255, 0.85);
+                    color: var(--ink);
+                }
+                button {
+                    cursor: pointer;
+                    background: var(--accent);
+                    color: #fff8f0;
+                    font-weight: 700;
+                    align-self: end;
+                }
+                .panel {
+                    padding: 24px;
+                }
+                .stats {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                    gap: 14px;
+                }
+                .stat {
+                    border: 1px solid var(--line);
+                    border-radius: 18px;
+                    padding: 16px;
+                    background: rgba(255, 255, 255, 0.75);
+                }
+                .stat small {
+                    display: block;
+                    color: var(--muted);
+                    margin-bottom: 6px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
+                    font-size: 0.72rem;
+                }
+                .stat strong {
+                    font-size: 1.4rem;
+                }
+                #chart {
+                    min-height: 560px;
+                }
+                .status {
+                    margin-top: 12px;
+                    color: var(--muted);
+                    font-size: 0.92rem;
+                }
+                @media (max-width: 720px) {
+                    body {
+                        padding: 14px;
+                    }
+                    .hero, .panel {
+                        border-radius: 18px;
+                        padding: 18px;
+                    }
     <script>
         // Atualiza a data
         document.getElementById('last-update').textContent = new Date().toLocaleDateString('pt-BR');
     </script>
 </body>
-</html>
+                <section class="hero">
+                    <h1>Indicadores do Banco Central, em uma camada só.</h1>
+                    <p>
+                        O frontend consome endpoints internos do projeto para consultar séries SGS e PTAX,
+                        filtrar períodos e desenhar gráficos históricos sem depender de arquivos HTML gerados.
+                    </p>
+                    <div class="controls">
+                        <div class="field">
+                            <label for="series">Série</label>
+                            <select id="series"></select>
+                        </div>
+                        <div class="field">
+                            <label for="start">Data inicial</label>
+                            <input id="start" type="date">
+                        </div>
+                        <div class="field">
+                            <label for="end">Data final</label>
+                            <input id="end" type="date">
+                        </div>
+                        <button id="refresh">Atualizar gráfico</button>
+                    </div>
+                    <div class="status" id="status">Carregando catálogo de séries...</div>
+                </section>
+
+                <section class="panel">
+                    <div class="stats" id="stats"></div>
+                </section>
+
+                <section class="panel">
+                    <div id="chart"></div>
+                </section>
+            </div>
+
+            <script>
+                const apiBase = window.location.origin;
+                const seriesSelect = document.getElementById('series');
+                const startInput = document.getElementById('start');
+                const endInput = document.getElementById('end');
+                const refreshButton = document.getElementById('refresh');
+                const statsContainer = document.getElementById('stats');
+                const statusNode = document.getElementById('status');
+
+                let seriesCatalog = [];
+
+                function formatValue(value) {
+                    return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 4 }).format(value);
+                }
+
+                function setStatus(message) {
+                    statusNode.textContent = message;
+                }
+
+                function renderStats(payload) {
+                    const latest = payload.latest || {};
+                    const items = [
+                        { label: 'Observações', value: payload.count ?? 0 },
+                        { label: 'Último valor', value: latest.value != null ? formatValue(latest.value) : 'n/d' },
+                        { label: 'Última data', value: latest.date || 'n/d' },
+                        { label: 'Fonte', value: payload.series.source.toUpperCase() },
+                    ];
+                    statsContainer.innerHTML = items.map((item) => `
+                        <article class="stat">
+                            <small>${item.label}</small>
+                            <strong>${item.value}</strong>
+                        </article>
+                    `).join('');
+                }
+
+                function currentQuery() {
+                    const params = new URLSearchParams();
+                    if (startInput.value) params.set('start', startInput.value);
+                    if (endInput.value) params.set('end', endInput.value);
+                    const query = params.toString();
+                    return query ? `?${query}` : '';
+                }
+
+                async function loadChart() {
+                    const slug = seriesSelect.value;
+                    if (!slug) return;
+                    setStatus('Consultando endpoints internos do backend...');
+                    const query = currentQuery();
+                    const [seriesResponse, chartResponse] = await Promise.all([
+                        fetch(`${apiBase}/api/series/${slug}${query}`),
+                        fetch(`${apiBase}/api/charts/${slug}${query}`),
+                    ]);
+                    if (!seriesResponse.ok || !chartResponse.ok) {
+                        throw new Error('Falha ao consultar a API interna');
+                    }
+                    const payload = await seriesResponse.json();
+                    const chartPayload = await chartResponse.json();
+                    renderStats(payload);
+                    Plotly.newPlot('chart', chartPayload.figure.data, chartPayload.figure.layout, {
+                        responsive: true,
+                        displaylogo: false,
+                    });
+                    setStatus(`Última atualização local: ${new Date().toLocaleString('pt-BR')}`);
+                }
+
+                async function loadCatalog() {
+                    const response = await fetch(`${apiBase}/api/series`);
+                    if (!response.ok) {
+                        throw new Error('Não foi possível carregar o catálogo de séries');
+                    }
+                    seriesCatalog = await response.json();
+                    seriesSelect.innerHTML = seriesCatalog.map((item) => (
+                        `<option value="${item.slug}">${item.title}</option>`
+                    )).join('');
+                    const defaultSeries = seriesCatalog.find((item) => item.slug === 'selic-diaria') || seriesCatalog[0];
+                    if (defaultSeries) {
+                        seriesSelect.value = defaultSeries.slug;
+                        startInput.value = defaultSeries.default_start;
+                    }
+                    endInput.value = new Date().toISOString().slice(0, 10);
+                    await loadChart();
+                }
+
+                refreshButton.addEventListener('click', () => {
+                    loadChart().catch((error) => setStatus(error.message));
+                });
+
+                seriesSelect.addEventListener('change', () => {
+                    const selected = seriesCatalog.find((item) => item.slug === seriesSelect.value);
+                    if (selected && !startInput.value) {
+                        startInput.value = selected.default_start;
+                    }
+                    loadChart().catch((error) => setStatus(error.message));
+                });
+
+                loadCatalog().catch((error) => setStatus(error.message));
+            </script>

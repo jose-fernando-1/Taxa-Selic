@@ -1,11 +1,17 @@
-import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from datetime import datetime
-import requests
+from taxa_selic.bcb import BCBClient
+from taxa_selic.charts import build_series_figure
+from taxa_selic.service import EconomicDataService
+from taxa_selic.storage import SeriesStorage
 
-# Download dos dados mais recentes
-url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=csv"
-response = requests.get(url)
-with open('selic_efetiva.csv', 'wb') as f:
-    f.write(response.content)
+
+def main() -> None:
+    service = EconomicDataService(client=BCBClient(), storage=SeriesStorage())
+    service.update_series("selic-diaria")
+    frame = service.storage.load("selic-diaria")
+    figure = build_series_figure(service.get_definition("selic-diaria"), frame)
+    figure.write_html("grafico_selic_periodos.html")
+    print("✅ Gráfico da Selic gerado em grafico_selic_periodos.html")
+
+
+if __name__ == "__main__":
+    main()
