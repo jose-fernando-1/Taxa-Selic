@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Configurar Python
       uses: actions/setup-python@v4
@@ -36,9 +38,21 @@ jobs:
     - name: Commit e Push se houver mudanças
       run: |
         if [[ -n $(git status -s) ]]; then
+          BRANCH="${GITHUB_REF_NAME:-main}"
           git add .
           git commit -m "🤖 Atualização automática dos dados [skip ci]"
-          git push
+          for attempt in 1 2 3; do
+            if git pull --rebase origin "$BRANCH" && git push origin "HEAD:$BRANCH"; then
+              break
+            fi
+
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "Falha ao enviar após 3 tentativas"
+              exit 1
+            fi
+
+            echo "Tentativa $attempt falhou por corrida com outro push. Repetindo..."
+          done
         else
           echo "Nenhuma mudança para commit"
         fi
